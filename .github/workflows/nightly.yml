@@ -1,9 +1,6 @@
 name: Nightly
 
 on:
-  schedule:
-    # every night at midnight
-    - cron:  '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -26,20 +23,8 @@ jobs:
       - name: build debug
         run: ./gradlew assembleNightly
 
-      - name: Decrypt files
-        env:
-          ssh_key: ${{ secrets.ssh_key }}
-        run: |
-          echo "$ssh_key" | base64 -d > ssh_key
-          chmod 600 ssh_key
-
-      - name: Set date variable
-        run: echo "DATE=$(echo $(date +%Y-%m-%d))" >> $GITHUB_ENV
-
-      - name: release debug to kiwix.download.org
-        env:
-          UNIVERSAL_DEBUG_APK: app/build/outputs/apk/nightly/*universal*.apk
-        run: |
-          mkdir $DATE
-          cp $UNIVERSAL_DEBUG_APK $DATE
-          scp -P 30022 -vrp -i ssh_key -o StrictHostKeyChecking=no $DATE ci@master.download.kiwix.org:/data/download/nightly/
+      - name: release debug
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          path: app/build/outputs/apk/nightly/*universal*.apk
